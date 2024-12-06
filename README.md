@@ -15,8 +15,6 @@ This route allows users to create a new account by providing a unique username a
 **Success Response:**
 - A `201` status code is returned with the message "User registered successfully."
 
----
-
 ### 2. `POST /login/`
 
 **Required Fields:**
@@ -32,8 +30,6 @@ This route allows existing users to log in by providing their username and passw
 
 **Success Response:**
 - A `200` status code is returned with a JSON object containing the access token.
-
----
 
 ### 3. `GET /posts/`
 
@@ -51,8 +47,6 @@ This route retrieves all posts at the nearest location to the provided latitude 
 
 **Success Response:**
 - A `200` status code is returned with a JSON object containing the retrieved posts.
-
----
 
 ### 4. `POST /posts/`
 
@@ -73,8 +67,6 @@ This route allows a user to create a new post by providing the content, latitude
 **Success Response:**
 - A `201` status code is returned with a JSON object containing the new post.
 
----
-
 ### 5. `POST /posts/<int:post_id>/like/`
 
 **Required Fields:**
@@ -89,8 +81,6 @@ This route allows users to like a post.
 
 **Success Response:**
 - A `200` status code is returned with a JSON object containing the liked post.
-
----
 
 ### 6. `DELETE /posts/<int:post_id>/`
 
