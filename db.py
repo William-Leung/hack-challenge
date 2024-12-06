@@ -4,6 +4,9 @@ from datetime import datetime
 db = SQLAlchemy()
 
 def create_locations():
+    """
+    Hard coded locations.
+    """
     locations = [
         {"name": "Cocktail Lounge", "latitude": 42.12345, "longitude": -76.54321},
         {"name": "Olin Library", "latitude": 42.12346, "longitude": -76.54322},
@@ -18,30 +21,41 @@ def create_locations():
         db.session.add(location)
     db.session.commit()
 
-# User Model
 class User(db.Model):
+    """
+    Model for users using the app.
+    """
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Location Model
 class Location(db.Model):
+    """
+    Model for locations. Locations are referenced by their name rather than longitude-latitude in the code.
+    """
+    __tablename__ = "locations"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
 
-# Post Model
 class Post(db.Model):
+    """
+    Model for posts.
+    """
     __tablename__ = "posts"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    location_name = db.Column(db.String(100), nullable=False)  # Store location name directly
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    location_name = db.Column(db.String(100), db.ForeignKey('locations.name'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     likes = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('posts', lazy=True))
+    location = db.relationship('Location', backref=db.backref('posts', lazy=True))
 
     def __init__(self, user_id, location_name, content):
         self.user_id = user_id
@@ -57,7 +71,6 @@ class Post(db.Model):
             "likes": self.likes,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
         }
-
 
 from math import radians, cos, sin, sqrt, atan2
 

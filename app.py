@@ -1,18 +1,35 @@
 from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import JWTManager, create_access_token, verify_jwt_in_request, get_jwt_identity
+from functools import wraps
 from datetime import datetime, timedelta
 from db import db, User, Location, Post, get_nearest_location, create_locations
 import json
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 # App Configuration
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'dev_secret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'dev_secret'  
+app.config['JWT_TOKEN_LOCATION'] = ['headers']
+app.config['JWT_HEADER_NAME'] = 'Authorization'
+app.config['JWT_HEADER_TYPE'] = 'Bearer'
+
 
 db.init_app(app)
 jwt = JWTManager(app)
+
+def auth_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            verify_jwt_in_request()
+            return f(*args, **kwargs)
+        except Exception as e:
+            return failure_response("Invalid or missing token.", 401)
+    return decorated
 
 def success_response(data, code=200):
     return json.dumps(data), code
@@ -54,12 +71,13 @@ def login():
     
     user = User.query.filter_by(username=username).first()
     if user and check_password_hash(user.password_hash, password):
-        token = create_access_token(identity=user.id, expires_delta=timedelta(hours=1))
+        token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=1))
         return success_response({"token": token})
     
     return failure_response("Invalid credentials. Please register as a new user.", 401)
 
 @app.route('/posts/', methods=['GET'])
+@auth_required
 def get_posts_by_location():
     """
     Get all posts at a certain location.
@@ -80,6 +98,7 @@ def get_posts_by_location():
     return success_response({"posts": queried_posts})
 
 @app.route('/posts/', methods=['POST'])
+@auth_required
 def create_post():
     """
     Create a post.
@@ -108,6 +127,7 @@ def create_post():
     return success_response(new_post.serialize(), 201)
 
 @app.route('/posts/<int:post_id>/like/', methods=['POST'])
+@auth_required
 def like_post(post_id):
     """
     Like a post.
@@ -120,7 +140,11 @@ def like_post(post_id):
     return failure_response("Post not found.", 404)
 
 @app.route('/posts/<int:post_id>/', methods=['DELETE'])
+@auth_required
 def delete_post(post_id):
+    """
+    Delete a post.
+    """
     post = Post.query.get(post_id)
 
     if not post:
