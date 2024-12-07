@@ -4,5 +4,5 @@ services:
     ports:
     - "8000:5000"
     env_file: .env
-    volumes: /home/wcl53/chat.db:/usr/app/chat.db
+    # volumes: /home/wcl53/chat.db:/usr/app/chat.db
     

@@ -8,11 +8,16 @@ from db import db, User, Location, Post, get_nearest_location, create_locations
 import json
 import logging
 logging.basicConfig(level=logging.DEBUG)
-
+import os
 
 # App Configuration
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+
+print(f"Current working directory: {os.getcwd()}")
+print(f"Contents of current directory: {os.listdir('.')}")
+print(f"Contents of /data directory: {os.listdir('/data')}")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/chat.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'dev_secret'  
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
@@ -20,8 +25,14 @@ app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
 CORS(app)
 
-db_filename = "chat.db"
 db.init_app(app)
+
+with app.app_context():
+    db.create_all()
+    if Location.query.first() is None:
+        create_locations()  
+
+db_filename = "chat.db"
 jwt = JWTManager(app)
 
 def auth_required(f):
@@ -168,8 +179,4 @@ def delete_post(post_id):
     return failure_response(post.serialize(), 200)
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
-        create_locations()  
     app.run(host="0.0.0.0", port=5000, debug=True)
