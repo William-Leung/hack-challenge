@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import JWTManager, create_access_token, verify_jwt_in_request, get_jwt_identity
 from functools import wraps
@@ -8,6 +9,7 @@ import json
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
+
 # App Configuration
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -16,8 +18,9 @@ app.config['JWT_SECRET_KEY'] = 'dev_secret'
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
+CORS(app)
 
-
+db_filename = "chat.db"
 db.init_app(app)
 jwt = JWTManager(app)
 
@@ -36,6 +39,10 @@ def success_response(data, code=200):
 
 def failure_response(message, code=404):
     return json.dumps({"error": message}), code
+
+@app.route("/")
+def base():
+    return "hello"
 
 @app.route('/register/', methods=['POST'])
 def register():
@@ -77,17 +84,22 @@ def login():
     return failure_response("Invalid credentials. Please register as a new user.", 401)
 
 @app.route('/posts/', methods=['GET'])
-@auth_required
 def get_posts_by_location():
     """
     Get all posts at a certain location.
     """
-    data = request.json
-    latitude = data.get("latitude")
-    longitude = data.get("longitude")
+    latitude = request.args.get("latitude")
+    longitude = request.args.get("longitude")
 
     if not latitude or not longitude:
         return failure_response("Latitude and longitude are required.", 400)
+
+    # Convert latitude and longitude to float for comparison
+    try:
+        latitude = float(latitude)
+        longitude = float(longitude)
+    except ValueError:
+        return failure_response("Latitude and longitude must be valid numbers.", 400)
 
     nearest_location = get_nearest_location(latitude, longitude)
     if not nearest_location:
@@ -98,7 +110,7 @@ def get_posts_by_location():
     return success_response({"posts": queried_posts})
 
 @app.route('/posts/', methods=['POST'])
-@auth_required
+# @auth_required
 def create_post():
     """
     Create a post.
@@ -127,7 +139,7 @@ def create_post():
     return success_response(new_post.serialize(), 201)
 
 @app.route('/posts/<int:post_id>/like/', methods=['POST'])
-@auth_required
+# @auth_required
 def like_post(post_id):
     """
     Like a post.
@@ -140,7 +152,7 @@ def like_post(post_id):
     return failure_response("Post not found.", 404)
 
 @app.route('/posts/<int:post_id>/', methods=['DELETE'])
-@auth_required
+# @auth_required
 def delete_post(post_id):
     """
     Delete a post.
@@ -160,4 +172,4 @@ if __name__ == "__main__":
         db.drop_all()
         db.create_all()
         create_locations()  
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

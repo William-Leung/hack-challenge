@@ -1,0 +1,8 @@
+services: 
+  demo:
+    image: wcl53/hack-challenge
+    ports:
+    - "8000:5000"
+    env_file: .env
+    volumes: /home/wcl53/chat.db:/usr/app/chat.db
+    
